@@ -14,17 +14,17 @@ transform = transforms.Compose([
                          std=[0.229, 0.224, 0.225])
 ])
 
-MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_PUBLIC_MIXED_TARGETS_CD1/';  
+MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_PUBLIC_MIXED_TARGETS_CD1/15_DEG/COL1/SCENE1';  
 dataset = datasets.ImageFolder(root=MSTAR_dir, transform=transform)
 datasets_list = []
 degree_dirs = ['15_DEG', '16_DEG', '29_DEG', '31_DEG', '43_DEG', '44_DEG', '45_DEG']
-for deg_val in degree_dirs :
-    dir_path = os.path.join(MSTAR_dir, deg_val)
-    dataset = datasets.ImageFolder(root=dir_path, transform=transform)
-    datasets_list.append(dataset)
-concatenated_dataset = ConcatDataset(datasets_list)
-dataloader = DataLoader(concatenated_dataset, batch_size=32, shuffle=True)
-# print(len(concatenated_dataset))
+# for deg_val in degree_dirs :
+#     dir_path = os.path.join(MSTAR_dir, deg_val)
+#     dataset = datasets.ImageFolder(root=dir_path, transform=transform)
+#     datasets_list.append(dataset)
+# concatenated_dataset = ConcatDataset(datasets_list)
+print(dataset.class_to_idx)
+dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 def imshow(img, mean, std):
     img = img.numpy().transpose((1, 2, 0))
     img = std * img + mean  
@@ -34,14 +34,12 @@ def imshow(img, mean, std):
 mean = np.array([0.485, 0.456, 0.406])
 std = np.array([0.229, 0.224, 0.225])
 for images, labels in dataloader:
-    imshow(images[1], mean, std)
+    imshow(images[0], mean, std)
     print(labels)
-    # print("hi")
-    break
-total_size = len(concatenated_dataset)
+total_size = len(dataset)
 train_size = int(total_size * 0.8)  
 test_size = total_size - train_size 
-train_dataset, test_dataset = random_split(concatenated_dataset, [train_size, test_size])
+train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 model = models.resnet18(pretrained=True)    
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
@@ -69,5 +67,17 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
         running_loss += loss.item()
+        #print('Loss: {:.4f}'.format(loss.item()))        
         # running_corrects += torch.sum(preds == labels.data)
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for images, labels in test_dataset:
+            outputs = model(images.unsqueeze(0))
+            _, predicted = torch.max(outputs.data, 1)
+            total += torch.zeros(labels)
+            correct += (predicted == labels).sum().item()
+
+    print(f'Validation Accuracy: {100 * correct / total}%')
 
