@@ -13,7 +13,6 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406],  
                          std=[0.229, 0.224, 0.225])
 ])
-
 MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_PUBLIC_MIXED_TARGETS_CD1/15_DEG/COL1/SCENE1';  
 dataset = datasets.ImageFolder(root=MSTAR_dir, transform=transform)
 datasets_list = []
@@ -25,17 +24,17 @@ degree_dirs = ['15_DEG', '16_DEG', '29_DEG', '31_DEG', '43_DEG', '44_DEG', '45_D
 # concatenated_dataset = ConcatDataset(datasets_list)
 print(dataset.class_to_idx)
 dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
-def imshow(img, mean, std):
-    img = img.numpy().transpose((1, 2, 0))
-    img = std * img + mean  
-    img = np.clip(img, 0, 1) 
-    plt.imshow(img)
-    plt.show()
-mean = np.array([0.485, 0.456, 0.406])
-std = np.array([0.229, 0.224, 0.225])
-for images, labels in dataloader:
-    imshow(images[0], mean, std)
-    print(labels)
+# def imshow(img, mean, std):
+#     img = img.numpy().transpose((1, 2, 0))
+#     img = std * img + mean  
+#     img = np.clip(img, 0, 1) 
+#     plt.imshow(img)
+#     plt.show()
+# mean = np.array([0.485, 0.456, 0.406])
+# std = np.array([0.229, 0.224, 0.225])
+# for images, labels in dataloader:
+#     imshow(images[0], mean, std)
+#     print(labels)
 total_size = len(dataset)
 train_size = int(total_size * 0.8)  
 test_size = total_size - train_size 
@@ -67,6 +66,7 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
         running_loss += loss.item()
+        print(images)
         #print('Loss: {:.4f}'.format(loss.item()))        
         # running_corrects += torch.sum(preds == labels.data)
     model.eval()
@@ -80,4 +80,5 @@ for epoch in range(num_epochs):
             correct += (predicted == labels).sum().item()
 
     print(f'Validation Accuracy: {100 * correct / total}%')
+    
 
