@@ -13,17 +13,12 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406],  
                          std=[0.229, 0.224, 0.225])
 ])
-MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_PUBLIC_MIXED_TARGETS_CD1/15_DEG/COL1/SCENE1';  
+MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_PUBLIC_MIXED_TARGETS_CD1/';  
 dataset = datasets.ImageFolder(root=MSTAR_dir, transform=transform)
-datasets_list = []
-degree_dirs = ['15_DEG', '16_DEG', '29_DEG', '31_DEG', '43_DEG', '44_DEG', '45_DEG']
-# for deg_val in degree_dirs :
-#     dir_path = os.path.join(MSTAR_dir, deg_val)
-#     dataset = datasets.ImageFolder(root=dir_path, transform=transform)
-#     datasets_list.append(dataset)
-# concatenated_dataset = ConcatDataset(datasets_list)
-print(dataset.class_to_idx)
+print(len(dataset))
 dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+print(dataset.class_to_idx)
+
 # def imshow(img, mean, std):
 #     img = img.numpy().transpose((1, 2, 0))
 #     img = std * img + mean  
@@ -66,19 +61,24 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
         running_loss += loss.item()
-        print(images)
+        #print(images)
         #print('Loss: {:.4f}'.format(loss.item()))        
         # running_corrects += torch.sum(preds == labels.data)
     model.eval()
+    test_loss = 0.0
     correct = 0
     total = 0
     with torch.no_grad():
-        for images, labels in test_dataset:
-            outputs = model(images.unsqueeze(0))
+        for images, labels in DataLoader(test_dataset, batch_size=32, shuffle=False):
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            test_loss += loss.item()
             _, predicted = torch.max(outputs.data, 1)
-            total += torch.zeros(labels)
+            total += labels.size(0)
             correct += (predicted == labels).sum().item()
-
-    print(f'Validation Accuracy: {100 * correct / total}%')
+    print(f'Accuracy of the model on the test images: {100 * correct / total}%')
+    print(f'Average loss on the test dataset: {test_loss / len(DataLoader(test_dataset))}')
     
 
