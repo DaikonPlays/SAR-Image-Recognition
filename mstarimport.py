@@ -43,7 +43,7 @@ for name, param in model.named_parameters():
     else:
         param.requires_grad = False
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9) 
+optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9) 
 num_epochs = 10
 for epoch in range(num_epochs):
     model.train()
@@ -78,7 +78,8 @@ for epoch in range(num_epochs):
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-    print(f'Accuracy of the model on the test images: {100 * correct / total}%')
-    print(f'Average loss on the test dataset: {test_loss / len(DataLoader(test_dataset))}')
+            print(f'Accuracy of the model on the test images: {100 * correct / total}%')
+            print(outputs)
+            print(f'Average loss on the test dataset: {test_loss / len(DataLoader(test_dataset))}')
     
 
