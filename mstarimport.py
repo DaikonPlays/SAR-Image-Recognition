@@ -43,7 +43,7 @@ for name, param in model.named_parameters():
     else:
         param.requires_grad = False
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9) 
+optimizer = optim.Adam(model.parameters(), lr=0.0001) 
 num_epochs = 10
 for epoch in range(num_epochs):
     model.train()
