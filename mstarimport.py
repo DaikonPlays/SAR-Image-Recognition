@@ -8,12 +8,11 @@ import torch.nn as nn
 import torch.optim as optim
 
 transform = transforms.Compose([
-    transforms.Resize((224, 224)), 
+    transforms.Resize((224, 224)), # WHY 224x224? I BELIEVE THE IMAGES ARE SMALLER (128x128). STILL, IF THEY HAVE VARIABLE SIZE, KEEP THIS RESIZE TO 224x224
     transforms.ToTensor(), 
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],  
-                         std=[0.229, 0.224, 0.225])
+    # WHERE DID YOU GET THIS NUMBERS? IF THESE ARE NOT THE GOOD VALUES FOR THE MSTAR DATASET, REMOVE THE NORMALIZATION
 ])
-MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_DATASET/';  
+MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_TargetData/';  
 dataset = datasets.ImageFolder(root=MSTAR_dir, transform=transform)
 print(len(dataset))
 dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
@@ -34,7 +33,9 @@ total_size = len(dataset)
 train_size = int(total_size * 0.8)  
 test_size = total_size - train_size 
 train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
-model = models.resnet18(pretrained=True)    
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+model = models.resnet18(pretrained=False)    
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 for name, param in model.named_parameters():
@@ -43,19 +44,19 @@ for name, param in model.named_parameters():
     else:
         param.requires_grad = False
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.0001) 
-num_epochs = 10
+optimizer = optim.Adam(model.parameters(), lr=0.005) 
+num_epochs = 50 
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0
     # running_corrects = 0
-    for images, labels in train_dataset:
+    for images, labels in train_loader: #WHY DON'T YOU USE HERE THE DATALOADER AS YOU DO FOR THE TESTING LOOP? I WOULD COPY WHAT YOU HAVE BELOW TO GET IMAGES/LABEL/OUTPUTS
         images = images.to(device)
         if not isinstance(labels, torch.Tensor):
             labels = torch.tensor(labels) 
         labels = labels.to(device)  
         optimizer.zero_grad()
-        outputs = model(images.unsqueeze(0))
+        outputs = model(images)
         outputs = torch.squeeze(outputs)
         loss = criterion(outputs, labels)
         loss.backward()
@@ -69,7 +70,7 @@ for epoch in range(num_epochs):
     correct = 0
     total = 0
     with torch.no_grad():
-        for images, labels in DataLoader(test_dataset, batch_size=32, shuffle=False):
+        for images, labels in test_loader:
             images = images.to(device)
             labels = labels.to(device)
             outputs = model(images)
@@ -80,5 +81,3 @@ for epoch in range(num_epochs):
             correct += (predicted == labels).sum().item()
     print(f'Accuracy of the model on the test images: {100 * correct / total}%')
     print(f'Average loss on the test dataset: {test_loss / len(DataLoader(test_dataset))}')
-    
-
