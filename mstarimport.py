@@ -6,9 +6,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
+from PIL import Image, ImageFilter
+class AddGaussianBlur:
+    def __init__(self, radius=2):
+        self.radius = radius
 
+    def __call__(self, img):
+        return img.filter(ImageFilter.GaussianBlur(self.radius))
 transform = transforms.Compose([
-    transforms.Resize((224, 224)), # WHY 224x224? I BELIEVE THE IMAGES ARE SMALLER (128x128). STILL, IF THEY HAVE VARIABLE SIZE, KEEP THIS RESIZE TO 224x224
+    transforms.Resize((224, 224)),
+     AddGaussianBlur(radius=3), # WHY 224x224? I BELIEVE THE IMAGES ARE SMALLER (128x128). STILL, IF THEY HAVE VARIABLE SIZE, KEEP THIS RESIZE TO 224x224
     transforms.ToTensor(), 
     # WHERE DID YOU GET THIS NUMBERS? IF THESE ARE NOT THE GOOD VALUES FOR THE MSTAR DATASET, REMOVE THE NORMALIZATION
 ])
@@ -17,18 +24,6 @@ dataset = datasets.ImageFolder(root=MSTAR_dir, transform=transform)
 print(len(dataset))
 dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 print(dataset.class_to_idx)
-
-# def imshow(img, mean, std):
-#     img = img.numpy().transpose((1, 2, 0))
-#     img = std * img + mean  
-#     img = np.clip(img, 0, 1) 
-#     plt.imshow(img)
-#     plt.show()
-# mean = np.array([0.485, 0.456, 0.406])
-# std = np.array([0.229, 0.224, 0.225])
-# for images, labels in dataloader:
-#     imshow(images[0], mean, std)
-#     print(labels)
 total_size = len(dataset)
 train_size = int(total_size * 0.8)  
 test_size = total_size - train_size 
@@ -44,7 +39,7 @@ for name, param in model.named_parameters():
     else:
         param.requires_grad = False
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.005) 
+optimizer = optim.Adam(model.parameters(), lr=0.001) 
 num_epochs = 50 
 for epoch in range(num_epochs):
     model.train()
