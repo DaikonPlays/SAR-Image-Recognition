@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
+import torchhd
 from PIL import Image, ImageFilter
 class AddGaussianBlur:
     def __init__(self, radius=2):
@@ -13,11 +14,12 @@ class AddGaussianBlur:
 
     def __call__(self, img):
         return img.filter(ImageFilter.GaussianBlur(self.radius))
+def mapHD():
+    torchhd.random()
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
-     AddGaussianBlur(radius=3), # WHY 224x224? I BELIEVE THE IMAGES ARE SMALLER (128x128). STILL, IF THEY HAVE VARIABLE SIZE, KEEP THIS RESIZE TO 224x224
+     AddGaussianBlur(radius=3), 
     transforms.ToTensor(), 
-    # WHERE DID YOU GET THIS NUMBERS? IF THESE ARE NOT THE GOOD VALUES FOR THE MSTAR DATASET, REMOVE THE NORMALIZATION
 ])
 MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_TargetData/';  
 dataset = datasets.ImageFolder(root=MSTAR_dir, transform=transform)
@@ -45,7 +47,7 @@ for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0
     # running_corrects = 0
-    for images, labels in train_loader: #WHY DON'T YOU USE HERE THE DATALOADER AS YOU DO FOR THE TESTING LOOP? I WOULD COPY WHAT YOU HAVE BELOW TO GET IMAGES/LABEL/OUTPUTS
+    for images, labels in train_loader: 
         images = images.to(device)
         if not isinstance(labels, torch.Tensor):
             labels = torch.tensor(labels) 
