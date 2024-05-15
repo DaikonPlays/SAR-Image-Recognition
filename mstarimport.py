@@ -24,6 +24,8 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         x = self.flatten(x)
+        print(self.position.weight.size())
+        print(self.value(x).size())
         sample_hv = torchhd.bind(self.position.weight, self.value(x))
         sample_hv = torchhd.multiset(sample_hv)
         return torchhd.hard_quantize(sample_hv)
@@ -47,7 +49,7 @@ class AddGaussianBlur:
         return img.filter(ImageFilter.GaussianBlur(self.radius))
 
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),
+    transforms.Resize(IMG_SIZE),
     AddGaussianBlur(radius=3), 
     transforms.ToTensor(), 
 ])
