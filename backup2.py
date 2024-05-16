@@ -6,50 +6,48 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
-#mport torchhd
-# from torchhd.models import Centroid
-# from torchhd import embeddings
+import torchhd
+from torchhd.models import Centroid
+from torchhd import embeddings
 from PIL import Image, ImageFilter
-from torch_hd import hdlayers as hd
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 DIMENSIONS = 10000
 IMG_SIZE = 224
 NUM_LEVELS = 1000
 BATCH_SIZE = 1
-qbins = 256  
-max_val = 255  
-min_val = 0    
-codec = hd.IDLevelCodec(dim_in=224*224, D=DIMENSIONS, qbins=qbins, max_val=max_val, min_val=min_val)
-# class Encoder(nn.Module):
-#     def __init__(self, out_features, size, levels):
-#         super(Encoder, self).__init__()
-#         self.flatten = torch.nn.Flatten()
-#         self.position = embeddings.Random(size * size, out_features)
-#         self.embedding = embeddings.Level(levels, out_features)
+class Encoder(nn.Module):
+    def __init__(self, input_features, dimensions):
+        super(Encoder, self).__init__()
+        self.embedding = torchhd.embeddings.Random(input_features, dimensions)
+    def forward(self, x):   
+        print(x)     
+        hypervectors = self.embedding(x)
+        hypervector = torch.sum(hypervectors, dim=1)
+        return hypervector
+def imshow(img, mean, std):
+    img = img.numpy().transpose((1, 2, 0))
+    img = std * img + mean  
+    img = np.clip(img, 0, 1) 
+    plt.imshow(img)
+    plt.show()
+mean = np.array([0.485, 0.456, 0.406])
+std = np.array([0.229, 0.224, 0.225])
+class HyperVectorMap(torch.utils.data.Dataset):
+    def __init__(self, orig_dataset, encoder):
+        self.orig_dataset = orig_dataset
+        self.encoder = encoder
 
-#     def forward(self, x):
-#         # x = self.flatten(x)
-#         # print(self.position.weight.size())
-#         # print(self.value(x).size())
-#         # sample_hv = torchhd.bind(self.position.weight, self.value(x))
-#         # sample_hv = torchhd.multiset(sample_hv)
-        
-#         # return torchhd.hard_quantize(sample_hv)
-#         hypervector = self.embedding(x)
-#         return torch.sum(hypervector, dim=0)
-# encoder = Encoder(DIMENSIONS, IMG_SIZE, NUM_LEVELS).to(device)
-# class HyperVectorMap(torch.utils.data.Dataset):
-#     def __init__(self, orig_dataset, encoder):
-#         self.orig_dataset = orig_dataset
-#         self.encoder = encoder
-#     def __getitem__(self, idx):
-#         image, label = self.orig_dataset[idx]
-#         image = image.unsqueeze(0).to(device)
-#         image = self.encoder(image)
-#         image = image.squeeze(0)
-#         return image, label
-#     def __len__(self):
-#         return len(self.orig_dataset)
+    def __getitem__(self, idx):
+        image, label = self.orig_dataset[idx]
+        image = image.unsqueeze(0).to(device)  
+        #imshow(image, mean, std)
+        hypervector = self.encoder(image)
+        hypervector = hypervector.squeeze(0) 
+        return hypervector, label
+
+    def __len__(self):
+        return len(self.orig_dataset)
+
 class AddGaussianBlur:
     def __init__(self, radius=2):
         self.radius = radius
@@ -58,10 +56,12 @@ class AddGaussianBlur:
 
 transform = transforms.Compose([
     transforms.Resize(IMG_SIZE),
-    transforms.Grayscale(),
     AddGaussianBlur(radius=3), 
     transforms.ToTensor(), 
 ])
+input_features = IMG_SIZE * IMG_SIZE  
+encoder = Encoder(input_features, DIMENSIONS).to(device)
+
 MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_TargetData/';  
 dataset = datasets.ImageFolder(root=MSTAR_dir, transform=transform)
 print(len(dataset))
@@ -71,14 +71,11 @@ total_size = len(dataset)
 train_size = int(total_size * 0.8)  
 test_size = total_size - train_size 
 train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
-# encoded_train_dataset = HyperVectorMap(train_dataset, encoder)
-# encoded_test_dataset = HyperVectorMap(test_dataset, encoder)
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=32, shuffle=True)
-for images, labels in dataloader:
-    images = images.view(images.size(0), -1) * 255  
-    hypervectors = codec(images)
-    print("Generated Hypervectors:", hypervectors.shape)
+encoded_train_dataset = HyperVectorMap(train_dataset, encoder)
+encoded_test_dataset = HyperVectorMap(test_dataset, encoder)
+train_loader = DataLoader(encoded_train_dataset, batch_size=32, shuffle=True)
+test_loader = DataLoader(encoded_test_dataset, batch_size=32, shuffle=False)
+
 
 model = models.resnet18(pretrained=False)    
 model.to(device)
@@ -90,7 +87,6 @@ for name, param in model.named_parameters():
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001) 
 num_epochs = 50 
-print("hypervector")
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0
