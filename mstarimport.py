@@ -1,12 +1,11 @@
 import os
-import torch
+import torch, torchhd
 from torchvision import transforms, datasets, models
 from torch.utils.data import DataLoader, ConcatDataset, random_split
 import matplotlib.pyplot as plt
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
-import torchhd
 from torchhd.models import Centroid
 from torchhd import embeddings
 from PIL import Image, ImageFilter
