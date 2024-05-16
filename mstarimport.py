@@ -57,17 +57,19 @@ transform = transforms.Compose([
     transforms.ToTensor(), 
 ])
 
-MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_TargetData/';  
-dataset = datasets.ImageFolder(root=MSTAR_dir, transform=transform)
-print(len(dataset))
-dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
-print(dataset.class_to_idx)
-total_size = len(dataset)
-train_size = int(total_size * 0.8)  
-test_size = total_size - train_size 
-train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
-encoded_train_dataset = HyperVectorMap(train_dataset, encoder)
-encoded_test_dataset = HyperVectorMap(test_dataset, encoder)
+# MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_TargetData/';  
+# dataset = datasets.ImageFolder(root=MSTAR_dir, transform=transform)
+encoded_train_dataset = datasets.MNIST('../data', train=True, download=True, transform=transform)
+encoded_test_dataset = datasets.MNIST('../data', train=False, transform=transform)
+# print(len(dataset))
+# dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+# print(dataset.class_to_idx)
+# total_size = len(dataset)
+# train_size = int(total_size * 0.8)  
+# test_size = total_size - train_size 
+# train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+# encoded_train_dataset = HyperVectorMap(train_dataset, encoder)
+# encoded_test_dataset = HyperVectorMap(test_dataset, encoder)
 train_loader = DataLoader(encoded_train_dataset, batch_size=32, shuffle=True)
 test_loader = DataLoader(encoded_test_dataset, batch_size=32, shuffle=False)
 
@@ -117,4 +119,4 @@ for epoch in range(num_epochs):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
     print(f'Accuracy of the model on the test images: {100 * correct / total}%')
-    print(f'Average loss on the test dataset: {test_loss / len(DataLoader(test_dataset))}')
+    print(f'Average loss on the test dataset: {test_loss / len(DataLoader(encoded_test_dataset))}')
