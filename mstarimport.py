@@ -20,15 +20,18 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.flatten = torch.nn.Flatten()
         self.position = embeddings.Random(size * size, out_features)
-        self.value = embeddings.Level(levels, out_features)
+        self.embedding = embeddings.Level(levels, out_features)
 
     def forward(self, x):
-        x = self.flatten(x)
-        print(self.position.weight.size())
-        print(self.value(x).size())
-        sample_hv = torchhd.bind(self.position.weight, self.value(x))
-        sample_hv = torchhd.multiset(sample_hv)
-        return torchhd.hard_quantize(sample_hv)
+        # x = self.flatten(x)
+        # print(self.position.weight.size())
+        # print(self.value(x).size())
+        # sample_hv = torchhd.bind(self.position.weight, self.value(x))
+        # sample_hv = torchhd.multiset(sample_hv)
+        
+        # return torchhd.hard_quantize(sample_hv)
+        hypervector = self.embedding(x)
+        return torch.sum(hypervector, dim=0)
 encoder = Encoder(DIMENSIONS, IMG_SIZE, NUM_LEVELS).to(device)
 class HyperVectorMap(torch.utils.data.Dataset):
     def __init__(self, orig_dataset, encoder):
@@ -53,6 +56,7 @@ transform = transforms.Compose([
     AddGaussianBlur(radius=3), 
     transforms.ToTensor(), 
 ])
+
 MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_TargetData/';  
 dataset = datasets.ImageFolder(root=MSTAR_dir, transform=transform)
 print(len(dataset))
@@ -66,6 +70,8 @@ encoded_train_dataset = HyperVectorMap(train_dataset, encoder)
 encoded_test_dataset = HyperVectorMap(test_dataset, encoder)
 train_loader = DataLoader(encoded_train_dataset, batch_size=32, shuffle=True)
 test_loader = DataLoader(encoded_test_dataset, batch_size=32, shuffle=False)
+
+
 model = models.resnet18(pretrained=False)    
 model.to(device)
 for name, param in model.named_parameters():
@@ -76,6 +82,7 @@ for name, param in model.named_parameters():
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001) 
 num_epochs = 50 
+print("hypervector")
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0
