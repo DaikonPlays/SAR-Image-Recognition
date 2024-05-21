@@ -42,14 +42,14 @@ transform = transforms.Compose([
 ])
 input_features = IMG_SIZE * IMG_SIZE  
 #encoder = Encoder(input_features, DIMENSIONS).to(device)
-MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_TargetData/';  
-dataset = datasets.ImageFolder(root=MSTAR_dir, transform=transform)
-print(len(dataset))
-dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
-print(dataset.class_to_idx)
-total_size = len(dataset)
-train_size = int(total_size * 0.8)  
-test_size = total_size - train_size 
+# MSTAR_dir = '/Users/kevinyan/Downloads/MSTAR_TargetData/';  
+# dataset = datasets.ImageFolder(root=MSTAR_dir, transform=transform)
+# print(len(dataset))
+# dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+# print(dataset.class_to_idx)
+# total_size = len(dataset)
+# train_size = int(total_size * 0.8)  
+# test_size = total_size - train_size 
 # train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 train_dataset = datasets.MNIST('../data', train=True, download=True, transform=transform)
 test_dataset = datasets.MNIST('../data', train=False, transform=transform)
