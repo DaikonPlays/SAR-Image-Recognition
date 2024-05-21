@@ -14,7 +14,7 @@ from torchhd import embeddings
 from PIL import Image, ImageFilter
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 DIMENSIONS = 10000
-IMG_SIZE = 224
+IMG_SIZE = 128
 NUM_LEVELS = 1000
 
 BATCH_SIZE = 1
@@ -62,12 +62,8 @@ with torch.no_grad():
         labels = labels.to(device)
         hypervectors = encode(images)
         model.add(hypervectors, labels)
-
-# Normalize the Centroid model
 with torch.no_grad():
     model.normalize()
-
-# Evaluation
 accuracy = torchmetrics.Accuracy("multiclass", num_classes=8).to(device)
 
 with torch.no_grad():
