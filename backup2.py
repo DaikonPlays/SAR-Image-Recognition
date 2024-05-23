@@ -15,7 +15,7 @@ from PIL import Image, ImageFilter
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 DIMENSIONS = 10000
 IMG_SIZE = 128
-NUM_LEVELS = 1000
+NUM_LEVELS = 100
 
 BATCH_SIZE = 1
 class Encoder(nn.Module):
@@ -51,9 +51,9 @@ total_size = len(dataset)
 train_size = int(total_size * 0.8)  
 test_size = total_size - train_size 
 train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
-encode = Encoder(DIMENSIONS, train_dataset[0][0].numel()).to(device)
+encode = Encoder(DIMENSIONS, train_dataset[0][0].size(-1)).to(device)
 model = Centroid(DIMENSIONS, 8)
 model = model.to(device)
 with torch.no_grad():
