@@ -51,10 +51,10 @@ train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-
+num_classes = len(dataset.classes)
 encode = Encoder(DIMENSIONS, IMG_SIZE, NUM_LEVELS)
 encode = encode.to(device)
-model = Centroid(DIMENSIONS, 8)
+model = Centroid(DIMENSIONS, num_classes)
 model = model.to(device)
 with torch.no_grad():
     for images, labels in tqdm(train_loader, desc="Training"):
