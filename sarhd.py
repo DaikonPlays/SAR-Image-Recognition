@@ -14,7 +14,7 @@ from torchhd.models import Centroid
 from torchhd import embeddings
 from PIL import Image, ImageFilter
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-DIMENSIONS = 1000
+DIMENSIONS = 10000
 IMG_SIZE = 128
 NUM_LEVELS = 100
 
