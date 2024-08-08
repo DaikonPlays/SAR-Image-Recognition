@@ -20,6 +20,20 @@ DIMENSIONS = 20000
 IMG_SIZE = 128
 NUM_LEVELS = 1000
 BATCH_SIZE = 1  
+class CustomResizeTransform:
+    def __init__(self, size):
+        self.size = size
+
+    def __call__(self, img):
+        img = img.resize((self.size, self.size), Image.BILINEAR)
+        img = img.convert("L")  
+        img = transforms.ToTensor()(img)
+        return img
+transform = CustomResizeTransform(IMG_SIZE)
+# transform = torchvision.transforms.Compose([
+#     torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
+#     torchvision.transforms.ToTensor()
+# ])
 
 class Encoder(nn.Module):
     def __init__(self, out_features, size, levels):
@@ -31,6 +45,11 @@ class Encoder(nn.Module):
         else:
             self.nonlinear_projection = embeddings.Sinusoid(size * size, out_features)
 
+    # def forward(self, x):
+    #     x = self.flatten(x)
+    #     sample_hv = torchhd.bind(self.position.weight, self.value(x))
+    #     sample_hv = torchhd.multiset(sample_hv)   
+    #     return torchhd.hard_quantize(sample_hv)
     def forward(self, x):
         x = self.flatten(x)
         if args.type == 'linear':
@@ -81,7 +100,8 @@ with torch.no_grad():
     for samples, labels in tqdm(train_ld, desc="Training"):
         samples = samples.to(device)
         labels = labels.to(device)
-
+#check channels in the tensor
+#try projection level encoding
         samples_hv = encode(samples)
         model.add(samples_hv, labels)
 
