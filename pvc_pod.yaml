@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sar-hd-pod
+spec:
+  containers:
+  - name: sar-hd-container
+    image: python
+    args: ["sleep", "36500000"]
+    volumeMounts:
+    - mountPath: /sar-hd-vol
+      name: sar-hd-vol
+    resources:
+      limits:
+        nvidia.com/gpu: "2"
+        memory: "32G"
+        cpu: "16"
+      requests:
+        nvidia.com/gpu: "2"
+        memory: "32G"
+        cpu: "16"
+  restartPolicy: Never
+  volumes:
+    - name: sar-hd-vol
+      persistentVolumeClaim:
+        claimName: sar-hd-vol
