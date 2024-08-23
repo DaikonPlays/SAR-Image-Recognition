@@ -16,55 +16,46 @@ import argparse as ap
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using {} device".format(device))
 
-DIMENSIONS = 20000
+DIMENSIONS = 10000
 IMG_SIZE = 128
 NUM_LEVELS = 1000
-BATCH_SIZE = 1  
-class CustomResizeTransform:
-    def __init__(self, size):
-        self.size = size
-
-    def __call__(self, img):
-        img = img.resize((self.size, self.size), Image.BILINEAR)
-        img = img.convert("L")  
-        img = transforms.ToTensor()(img)
-        return img
-transform = CustomResizeTransform(IMG_SIZE)
-# transform = torchvision.transforms.Compose([
-#     torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
-#     torchvision.transforms.ToTensor()
-# ])
+BATCH_SIZE = 50 
+PATCH_SIZE = 32
 
 class Encoder(nn.Module):
-    def __init__(self, out_features, size, levels):
+    def __init__(self, out_features, size, levels, patch_size):
         super(Encoder, self).__init__()
         self.flatten = torch.nn.Flatten()
+        self.patch_size = patch_size
+        self.size = size
+
         if args.type == 'linear':
-            self.position = embeddings.Random(size * size, out_features)
+            self.position = embeddings.Random(patch_size * patch_size, out_features)
             self.value = embeddings.Level(levels, out_features)
         else:
-            self.nonlinear_projection = embeddings.Sinusoid(size * size, out_features)
+            self.nonlinear_projection = embeddings.Sinusoid(patch_size * patch_size, out_features)
 
-    # def forward(self, x):
-    #     x = self.flatten(x)
-    #     sample_hv = torchhd.bind(self.position.weight, self.value(x))
-    #     sample_hv = torchhd.multiset(sample_hv)   
-    #     return torchhd.hard_quantize(sample_hv)
     def forward(self, x):
-        x = self.flatten(x)
+        batch_size, channels, _, _ = x.size()
+        x = x.unfold(2, self.patch_size, self.patch_size).unfold(3, self.patch_size, self.patch_size)
+        x = x.contiguous().view(batch_size, channels, -1, self.patch_size * self.patch_size)
+        x = x.view(-1, self.patch_size * self.patch_size)
+
         if args.type == 'linear':
-            sample_hv = torchhd.bind(self.position.weight, self.value(x))
-            sample_hv = torchhd.multiset(sample_hv)
+            patches_hv = torchhd.bind(self.position.weight, self.value(x))
         else:
-            sample_hv = self.nonlinear_projection(x)
+            patches_hv = self.nonlinear_projection(x)
+            
+        patches_hv = patches_hv.view(batch_size, -1, patches_hv.size(-1))
+        sample_hv = torchhd.multiset(patches_hv)
         return torchhd.hard_quantize(sample_hv)
 
 # transform = torchvision.transforms.ToTensor()
 transform = torchvision.transforms.Compose([
     torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
     transforms.Grayscale(num_output_channels=1),
-    torchvision.transforms.ToTensor(),
-    torchvision.transforms.Normalize((0.1307,), (0.3081,))
+    torchvision.transforms.ToTensor()
+    # torchvision.transforms.Normalize((0.1307,), (0.3081,))
 ])
 
 parser = ap.ArgumentParser()
@@ -90,7 +81,7 @@ else:
     test_ld = torch.utils.data.DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False)
     num_classes = len(train_ds.classes)
 
-encode = Encoder(DIMENSIONS, IMG_SIZE, NUM_LEVELS)
+encode = Encoder(DIMENSIONS, IMG_SIZE, NUM_LEVELS, PATCH_SIZE)
 encode = encode.to(device)
 
 model = Centroid(in_features=DIMENSIONS, out_features=num_classes)
