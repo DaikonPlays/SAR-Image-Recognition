@@ -12,7 +12,7 @@ from torchhd import embeddings
 from torch.utils.data import DataLoader, ConcatDataset, random_split
 import os
 import argparse as ap
-
+import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using {} device".format(device))
 
@@ -22,12 +22,23 @@ NUM_LEVELS = 1000
 BATCH_SIZE = 50 
 PATCH_SIZE = 32
 
+def get_position_encoding(seq_len, d, n=10000):
+    P = np.zeros((seq_len, d))
+    for k in range(seq_len):
+        for i in np.arange(int(d/2)):
+            denominator = np.power(n, 2*i/d)
+            P[k, 2*i] = np.sin(k/denominator)
+            P[k, 2*i+1] = np.cos(k/denominator)
+    return torch.tensor(P, dtype=torch.float32)
+
 class Encoder(nn.Module):
     def __init__(self, out_features, size, levels, patch_size):
         super(Encoder, self).__init__()
         self.flatten = torch.nn.Flatten()
         self.patch_size = patch_size
         self.size = size
+        self.num_patches = (size // patch_size) ** 2 
+        self.position_encoding = get_position_encoding(self.num_patches, out_features)
 
         if args.type == 'linear':
             self.position = embeddings.Random(patch_size * patch_size, out_features)
@@ -37,7 +48,7 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         batch_size, channels, _, _ = x.size()
-        x = x.unfold(2, self.patch_size, self.patch_size).unfold(3, self.patch_size, self.patch_size)
+        x = x.unfold(2, self.patch_size, self.patch_size, stride=8).unfold(3, self.patch_size, self.patch_size, stride=8)
         x = x.contiguous().view(batch_size, channels, -1, self.patch_size * self.patch_size)
         x = x.view(-1, self.patch_size * self.patch_size)
 
@@ -45,7 +56,7 @@ class Encoder(nn.Module):
             patches_hv = torchhd.bind(self.position.weight, self.value(x))
         else:
             patches_hv = self.nonlinear_projection(x)
-            
+        patches_hv += self.position_encoding
         patches_hv = patches_hv.view(batch_size, -1, patches_hv.size(-1))
         sample_hv = torchhd.multiset(patches_hv)
         return torchhd.hard_quantize(sample_hv)
