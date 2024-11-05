@@ -45,18 +45,20 @@ class Encoder(nn.Module):
 
     def pixel_encoding(self, image):
         batch_size, channels, height, width = image.shape
-        print(batch_size)
+        print(width)
         image_flat = image.view(batch_size, -1).long()  
         image_hv = torch.zeros((batch_size, DIMENSIONS), device=device)
-        for y in range(height):
-            for x in range(width):
-                pixel_value = image_flat[:, y * width + x]  
-                value_hv = self.value_embedding(pixel_value) 
-                x_hv = self.x_position_embedding(torch.tensor(x, device=device))  
-                y_hv = self.y_position_embedding(torch.tensor(y, device=device)) 
-                pixel_hv = torchhd.bind(torchhd.bind(value_hv, x_hv), y_hv) 
-                image_hv += pixel_hv 
+        y_coords, x_coords = torch.meshgrid(torch.arange(height), torch.arange(width), indexing='ij')
+        x_coords = x_coords.unsqueeze(0).expand(batch_size, -1, -1).reshape(batch_size, -1).to(device)
+        y_coords = y_coords.unsqueeze(0).expand(batch_size, -1, -1).reshape(batch_size, -1).to(device)
 
+        value_hvs = self.value_embedding(image_flat)
+        x_hvs = self.x_position_embedding(x_coords)
+        y_hvs = self.y_position_embedding(y_coords)
+
+        # Bind and sum all pixel HVs to get image HV
+        pixel_hvs = torchhd.bind(torchhd.bind(value_hvs, x_hvs), y_hvs)
+        image_hv = torchhd.bundle(pixel_hvs, dim=1)
         return image_hv
 
         # if args.type == 'linear':
